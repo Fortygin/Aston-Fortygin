@@ -1,3 +1,4 @@
+package studentapp.model;
 /*
  * Конструктор с обязательными полями.
  *    groupNumber номер группы (> 0)
@@ -46,12 +47,12 @@ public class Student {
 
     @Override
     public String toString() {
-        return "Student{" +
-                "groupNumber=" + groupNumber +
-                ", averageGrade=" + averageGrade +
-                ", recordBookNumber='" + recordBookNumber + '\'' +
-                ", fullName=" + (fullName != null ? "'" + fullName + "'" : "null") +
-                ", email=" + (email != null ? "'" + email + "'" : "null") +
+        return "Студент: " +
+                "Номер группы: " + groupNumber +
+                ", Средний балл: " + averageGrade +
+                ", Номер зачетки: " + recordBookNumber + '\'' +
+                ", Полное имя: " + (fullName != null ? "'" + fullName + "'" : "Отсутсвует") +
+                ", email: " + (email != null ? "'" + email + "'" : "Отсутсвтует") +
                 '}';
     }
 
