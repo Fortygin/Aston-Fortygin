@@ -1,18 +1,16 @@
 package studentapp.strategy;
+
+import studentapp.collection.StudentCollection;
 import studentapp.model.Student;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class AverageGradeSortStrategy implements SortStrategy {
     @Override
-    public void sort(List<Student> students) {
-        if (students == null) return;
-        // Сортировка по убыванию
-        students.sort(Comparator.comparingDouble(Student::getAverageGrade).reversed());
-    }
-
+    public void sort(List<Student> s) { s.sort(Comparator.comparingDouble(Student::getAverageGrade).reversed()); }
     @Override
-    public String getStrategyName() {
-        return "По среднему баллу";
-    }
+    public void sort(StudentCollection c) { sort(Arrays.asList(c.toArray())); }
+    @Override
+    public void sort(Student[] s, int sz) { Arrays.sort(s, 0, sz, Comparator.comparingDouble(Student::getAverageGrade).reversed()); }
+    @Override
+    public String getStrategyName() { return "По среднему баллу"; }
 }

@@ -160,7 +160,13 @@ public class Main {
     }
 
     private static void handleSortSelection(List<Student> students) {
-        System.out.println("\n1.По номеру группы\n2.По среднему баллу\n3.По номеру зачетки");
+        System.out.println("\nВыберет стратегию сортировки: ");
+        System.out.println("1. По номеру группы (все)");
+        System.out.println("2. По среднему баллу (все)");
+        System.out.println("3. По номеру зачетки (все)");
+        System.out.println("4. По номеру группы (Только четные)");
+        System.out.println("5. По среднему баллу (Только четные)");
+        System.out.println("6. По номеру зачетки (Только четные)");
         System.out.print("Ваш выбор: ");
 
         String c = scanner.nextLine();
@@ -168,12 +174,19 @@ public class Main {
             case "1" -> new GroupNumberSortStrategy();
             case "2" -> new AverageGradeSortStrategy();
             case "3" -> new RecordBookNumberSortStrategy();
+            case "4" -> new EvenGroupNumberSortStrategy();
+            case "5" -> new EvenAverageGradeSortStrategy();
+            case "6" -> new EvenRecordBookSortStrategy();
             default -> null;
         };
 
         if (s != null) {
             s.sort(students);
-            logger.log(Level.INFO, "Выполнена сортировка: {0}", s.getStrategyName());
+            System.out.flush();
+            logger.log(Level.INFO, "Сортировка выполнена: {0}", s.getStrategyName());
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e){}
             displayStudents(students);
         } else {
             logger.warning("Сортировка не выбрана.");

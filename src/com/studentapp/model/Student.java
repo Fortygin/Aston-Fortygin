@@ -49,11 +49,10 @@ public class Student {
     public String toString() {
         return "Студент: " +
                 "Номер группы: " + groupNumber +
-                ", Средний балл: " + averageGrade +
-                ", Номер зачетки: " + recordBookNumber + '\'' +
-                ", Полное имя: " + (fullName != null ? "'" + fullName + "'" : "Отсутсвует") +
-                ", email: " + (email != null ? "'" + email + "'" : "Отсутсвтует") +
-                '}';
+                ", Средний балл: " + String.format("%.2f", averageGrade)  +
+                ", Номер зачетки: " + recordBookNumber +
+                ", Полное имя: " + (fullName != null ? "'" + fullName + "'" : "Отсутствует") +
+                ", email: " + (email != null ? "'" + email + "'" : "Отсутствует");
     }
 
     // Вложенный класс-билдер
