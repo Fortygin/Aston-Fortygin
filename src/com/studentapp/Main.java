@@ -96,7 +96,9 @@ public class Main {
                     group = Integer.parseInt(scanner.nextLine());
                     if (group <= 0) throw new IllegalArgumentException("Группа должна быть > 0");
                     break;
-                } catch (Exception e) { logger.log(Level.WARNING, "Ошибка ввода группы: {0}", e.getMessage()); }
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Ошибка ввода группы: {0}", e.getMessage());
+                }
             }
 
             // Балл
@@ -106,7 +108,9 @@ public class Main {
                     grade = Double.parseDouble(scanner.nextLine());
                     if (grade < 0 || grade > 5) throw new IllegalArgumentException("Балл 0.0 - 5.0");
                     break;
-                } catch (Exception e) { logger.log(Level.WARNING, "Ошибка ввода балла: {0}", e.getMessage()); }
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Ошибка ввода балла: {0}", e.getMessage());
+                }
             }
 
             // Зачетка
@@ -116,7 +120,9 @@ public class Main {
                     book = scanner.nextLine();
                     if (!book.matches("\\d{6}")) throw new IllegalArgumentException("Нужно 6 цифр!");
                     break;
-                } catch (Exception e) { logger.log(Level.WARNING, "Ошибка ввода зачетки: {0}", e.getMessage()); }
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Ошибка ввода зачетки: {0}", e.getMessage());
+                }
             }
 
             list.add(new Student.StudentBuilder(group, grade, book).build());
@@ -184,12 +190,27 @@ public class Main {
             s.sort(students);
             System.out.flush();
             logger.log(Level.INFO, "Сортировка выполнена: {0}", s.getStrategyName());
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e){}
+
+            try { Thread.sleep(100); } catch (InterruptedException e) {}
             displayStudents(students);
+
+            // Блок сохранения в файл с валидацией ввода (y/n)
+            while (true) {
+                System.out.print("\nСохранить отсортированный результат в файл? (y/n): ");
+                String saveChoice = scanner.nextLine().trim().toLowerCase();
+
+                if (saveChoice.equals("y")) {
+                    saveToFile(students, s.getStrategyName());
+                    break;
+                } else if (saveChoice.equals("n")) {
+                    logger.info("Сохранение отменено.");
+                    break;
+                } else {
+                    logger.warning("Неверный ввод. Введите 'y' или 'n'.");
+                }
+            }
         } else {
-            logger.warning("Сортировка не выбрана.");
+            logger.warning("Стратегия не выбрана.");
         }
     }
 
@@ -198,6 +219,20 @@ public class Main {
             System.out.println("Список пуст.");
         } else {
             list.forEach(System.out::println);
+        }
+    }
+
+    private static void saveToFile(List<Student> list, String strategyName) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("sorted_results.txt", true))) {
+            writer.write("Запись от " + new java.util.Date() + " ---\n");
+            writer.write("Стратегия: " + strategyName.replace("\n", " ") + "\n");
+            for (Student student : list) {
+                writer.write(student.toString() + "\n");
+            }
+            writer.write("\n\n");
+            logger.info("Результаты успешно дописаны в файл sorted_results.txt");
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Ошибка при записи в файл: {0}", e.getMessage());
         }
     }
 }
