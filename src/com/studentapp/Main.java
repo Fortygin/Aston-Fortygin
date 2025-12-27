@@ -1,7 +1,9 @@
 package studentapp;
 
 import studentapp.model.Student;
+import studentapp.collection.StudentCollection;
 import studentapp.strategy.*;
+
 import java.io.*;
 import java.util.*;
 import java.util.logging.*;
@@ -17,13 +19,14 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        List<Student> students = null;
+        StudentCollection collection = null;
 
         while (true) {
             System.out.println("\nМеню (выберите из предложенных вариантов)");
             System.out.println("1. Заполнить данные студентов");
             System.out.println("2. Вывести данные на экран");
             System.out.println("3. Отсортировать список");
+            System.out.println("4. Записать коллекцию в файл");
             System.out.println("0. Выход");
             System.out.print("Ваш выбор: ");
 
@@ -34,28 +37,23 @@ public class Main {
             }
 
             switch (choice) {
-                case "1" -> students = handleInputSelection();
-                case "2" -> displayStudents(students);
-                case "3" -> {
-                    if (students == null || students.isEmpty()) {
-                        logger.warning("Попытка сортировки пустого списка.");
-                    } else {
-                        handleSortSelection(students);
-                    }
-                }
+                case "1" -> collection = handleInputSelection();
+                case "2" -> displayCollection(collection);
+                case "3" -> handleSortSelection(collection);
+                case "4" -> saveCollectionToFile(collection);
                 default -> logger.log(Level.WARNING, "Неверный ввод в меню: {0}", choice);
             }
         }
     }
 
-    private static List<Student> handleInputSelection() {
-        System.out.println("\n1. Вручную\n2. Автоматическое заполнение Рандом\n3. Файл");
+    private static StudentCollection handleInputSelection() {
+        System.out.println("\n1. Вручную\n2. Автоматическое заполнение (рандом)\n3. Из файла");
         System.out.print("Ваш выбор: ");
 
         String mode = scanner.nextLine();
         int count = getValidCount();
 
-        return switch (mode) {
+        StudentCollection collection = switch (mode) {
             case "1" -> fillManual(count);
             case "2" -> fillRandom(count);
             case "3" -> fillFromFile(count);
@@ -64,6 +62,11 @@ public class Main {
                 yield null;
             }
         };
+
+        if (collection != null) {
+            logger.log(Level.INFO, "Создана коллекция из {0} студентов.", collection.size());
+        }
+        return collection;
     }
 
     private static int getValidCount() {
@@ -81,8 +84,8 @@ public class Main {
         }
     }
 
-    private static List<Student> fillManual(int count) {
-        List<Student> list = new ArrayList<>();
+    private static StudentCollection fillManual(int count) {
+        StudentCollection collection = new StudentCollection();
         for (int i = 0; i < count; i++) {
             System.out.println("\nСтудент №" + (i + 1));
             int group;
@@ -104,45 +107,47 @@ public class Main {
             // Балл
             while (true) {
                 try {
-                    System.out.print("Балл (0-5): ");
+                    System.out.print("Балл (0–5): ");
                     grade = Double.parseDouble(scanner.nextLine());
-                    if (grade < 0 || grade > 5) throw new IllegalArgumentException("Балл 0.0 - 5.0");
+                    if (grade < 0 || grade > 5) throw new IllegalArgumentException("Балл должен быть от 0.0 до 5.0");
                     break;
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Ошибка ввода балла: {0}", e.getMessage());
                 }
             }
 
-            // Зачетка
+            // Зачётка
             while (true) {
                 try {
-                    System.out.print("Зачетка (6 цифр): ");
+                    System.out.print("Зачётка (6 цифр): ");
                     book = scanner.nextLine();
-                    if (!book.matches("\\d{6}")) throw new IllegalArgumentException("Нужно 6 цифр!");
+                    if (!book.matches("\\d{6}")) throw new IllegalArgumentException("Нужно ровно 6 цифр!");
                     break;
                 } catch (Exception e) {
-                    logger.log(Level.WARNING, "Ошибка ввода зачетки: {0}", e.getMessage());
+                    logger.log(Level.WARNING, "Ошибка ввода зачётной книжки: {0}", e.getMessage());
                 }
             }
 
-            list.add(new Student.StudentBuilder(group, grade, book).build());
+            Student student = new Student.StudentBuilder(group, grade, book).build();
+            collection.add(student);
         }
-        logger.log(Level.INFO, "Вручную добавлено студентов: {0}", list.size());
-        return list;
+        logger.log(Level.INFO, "Вручную добавлено студентов: {0}", collection.size());
+        return collection;
     }
 
-    private static List<Student> fillFromFile(int count) {
-        List<Student> list = new ArrayList<>();
+    private static StudentCollection fillFromFile(int count) {
+        StudentCollection collection = new StudentCollection();
         try (BufferedReader br = new BufferedReader(new FileReader("students.txt"))) {
             for (int i = 0; i < count; i++) {
                 String line = br.readLine();
                 if (line == null) break;
                 try {
                     String[] d = line.split(",");
-                    list.add(new Student.StudentBuilder(
+                    Student student = new Student.StudentBuilder(
                             Integer.parseInt(d[0].trim()),
                             Double.parseDouble(d[1].trim()),
-                            d[2].trim()).build());
+                            d[2].trim()).build();
+                    collection.add(student);
                 } catch (Exception e) {
                     logger.log(Level.SEVERE, "Битые данные в файле: {0}", line);
                 }
@@ -151,88 +156,146 @@ public class Main {
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Файл не найден или недоступен!", e);
         }
-        return list;
+        return collection;
     }
 
-    private static List<Student> fillRandom(int count) {
-        List<Student> list = new ArrayList<>();
+    private static StudentCollection fillRandom(int count) {
+        StudentCollection collection = new StudentCollection();
         for (int i = 0; i < count; i++) {
-            list.add(new Student.StudentBuilder(random.nextInt(50) + 1,
+            Student student = new Student.StudentBuilder(
+                    random.nextInt(50) + 1,
                     2.0 + 3.0 * random.nextDouble(),
-                    String.format("%06d", random.nextInt(1000000))).build());
+                    String.format("%06d", random.nextInt(1000000))
+            ).build();
+            collection.add(student);
         }
         logger.log(Level.INFO, "Сгенерировано случайных студентов: {0}", count);
-        return list;
+        return collection;
     }
 
-    private static void handleSortSelection(List<Student> students) {
-        System.out.println("\nВыберет стратегию сортировки: ");
-        System.out.println("1. По номеру группы (все)");
-        System.out.println("2. По среднему баллу (все)");
-        System.out.println("3. По номеру зачетки (все)");
-        System.out.println("4. По номеру группы (Только четные)");
-        System.out.println("5. По среднему баллу (Только четные)");
-        System.out.println("6. По номеру зачетки (Только четные)");
+    private static void handleSortSelection(StudentCollection collection) {
+        if (collection == null || collection.isEmpty()) {
+            logger.warning("Попытка сортировки пустой коллекции.");
+            return;
+        }
+
+        System.out.println("\nВыберите стратегию сортировки:");
+        System.out.println("1. По номеру группы");
+        System.out.println("2. По среднему баллу");
+        System.out.println("3. По номеру зачётной книжки");
+        System.out.println("4. По номеру группы (только чётные)");
+        System.out.println("5. По среднему баллу (только чётные)");
+        System.out.println("6. По номеру зачётной книжки (только чётные)");
         System.out.print("Ваш выбор: ");
 
-        String c = scanner.nextLine();
-        SortStrategy s = switch (c) {
-            case "1" -> new GroupNumberSortStrategy();
-            case "2" -> new AverageGradeSortStrategy();
-            case "3" -> new RecordBookNumberSortStrategy();
-            case "4" -> new EvenGroupNumberSortStrategy();
-            case "5" -> new EvenAverageGradeSortStrategy();
-            case "6" -> new EvenRecordBookSortStrategy();
-            default -> null;
-        };
 
-        if (s != null) {
-            s.sort(students);
-            System.out.flush();
-            logger.log(Level.INFO, "Сортировка выполнена: {0}", s.getStrategyName());
-
-            try { Thread.sleep(100); } catch (InterruptedException e) {}
-            displayStudents(students);
-
-            // Блок сохранения в файл с валидацией ввода (y/n)
-            while (true) {
-                System.out.print("\nСохранить отсортированный результат в файл? (y/n): ");
-                String saveChoice = scanner.nextLine().trim().toLowerCase();
-
-                if (saveChoice.equals("y")) {
-                    saveToFile(students, s.getStrategyName());
-                    break;
-                } else if (saveChoice.equals("n")) {
-                    logger.info("Сохранение отменено.");
-                    break;
-                } else {
-                    logger.warning("Неверный ввод. Введите 'y' или 'n'.");
-                }
+        String strategy = scanner.nextLine();
+        StudentComparator comparator = null;
+        EvenSortStrategy evenStrategy = null;
+        switch (strategy) {
+            case "1" -> comparator = new GroupNumberSortStrategy();
+            case "2" -> comparator = new AverageGradeSortStrategy();
+            case "3" -> comparator = new RecordBookNumberSortStrategy();
+            case "4" -> evenStrategy = new EvenGroupNumberSortStrategy();
+            case "5" -> evenStrategy = new EvenAverageGradeSortStrategy();
+            case "6" -> evenStrategy = new EvenRecordBookSortStrategy();
+            default -> {
+                System.out.println("Неверная стратегия.");
+                return;
             }
+        }
+
+        if (comparator != null) {
+            collection.sort(comparator);
+            logger.log(Level.INFO, "Сортировка выполнена: {0}", comparator.getDescription());
+
+            // Небольшая пауза для читаемости вывода
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+            }
+            displayCollection(collection);
+            promptAndSaveToFile(collection, comparator.getDescription());
+        } else if (evenStrategy != null) {
+            collection.sort(evenStrategy);
+            logger.log(Level.INFO, "Сортировка чётных значений выполнена: {0}", evenStrategy.getDescription());
+
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+            }
+            displayCollection(collection);
+            promptAndSaveToFile(collection, evenStrategy.getDescription());
         } else {
             logger.warning("Стратегия не выбрана.");
         }
     }
+    // Блок сохранения в файл для метода handleSortSelection
+    private static void promptAndSaveToFile(StudentCollection collection, String strategyDescription) {
+        while (true) {
+            System.out.print("\nСохранить отсортированный результат в файл? (y/n): ");
+            String saveChoice = scanner.nextLine().trim().toLowerCase();
 
-    private static void displayStudents(List<Student> list) {
-        if (list == null || list.isEmpty()) {
-            System.out.println("Список пуст.");
-        } else {
-            list.forEach(System.out::println);
+            if (saveChoice.equals("y")) {
+                saveCollectionToFile(collection, strategyDescription);
+                break;
+            } else if (saveChoice.equals("n")) {
+                logger.info("Сохранение отменено.");
+                break;
+            } else {
+                logger.warning("Неверный ввод. Введите 'y' или 'n'.");
+            }
         }
     }
 
-    private static void saveToFile(List<Student> list, String strategyName) {
+    private static void displayCollection(StudentCollection collection) {
+        if (collection == null || collection.isEmpty()) {
+            System.out.println("Коллекция пуста.");
+            return;
+        }
+        System.out.println("\nСодержимое коллекции:");
+        for (int i = 0; i < collection.size(); i++) {
+            System.out.println(collection.get(i));
+        }
+    }
+
+    private static void saveCollectionToFile(StudentCollection collection, String strategyName) {
+        if (collection == null || collection.isEmpty()) {
+            logger.warning("Попытка сохранения пустой коллекции.");
+            return;
+        }
+
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("sorted_results.txt", true))) {
             writer.write("Запись от " + new java.util.Date() + " ---\n");
             writer.write("Стратегия: " + strategyName.replace("\n", " ") + "\n");
-            for (Student student : list) {
-                writer.write(student.toString() + "\n");
+            for (int i = 0; i < collection.size(); i++) {
+                writer.write(collection.get(i).toString() + "\n");
             }
             writer.write("\n\n");
             logger.info("Результаты успешно дописаны в файл sorted_results.txt");
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Ошибка при записи в файл: {0}", e.getMessage());
+        }
+    }
+
+    // Дополнительный метод для сохранения без указания стратегии (например, из пункта меню 4)
+    private static void saveCollectionToFile(StudentCollection collection) {
+        if (collection == null || collection.isEmpty()) {
+            logger.warning("Попытка сохранения пустой коллекции.");
+            return;
+        }
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("collection_dump.txt", true))) {
+            writer.write("Сохранение коллекции от " + new java.util.Date() + " ---\n");
+            for (int i = 0; i < collection.size(); i++) {
+                writer.write(collection.get(i).toString() + "\n");
+            }
+            writer.write("\n");
+            logger.info("Коллекция успешно сохранена в файл collection_dump.txt");
+            System.out.println("Данные сохранены в файл collection_dump.txt");
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Ошибка при записи в файл: {0}", e.getMessage());
+            System.out.println("Ошибка сохранения в файл.");
         }
     }
 }

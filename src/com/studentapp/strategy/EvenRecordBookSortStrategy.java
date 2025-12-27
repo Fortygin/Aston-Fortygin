@@ -20,7 +20,7 @@ public class EvenRecordBookSortStrategy extends EvenFieldSortStrategy {
     }
 
     @Override
-    public String getStrategyName() {
+    public String getDescription() {
         return "По номеру зачетной книжки\nСортируем только чётные значения";
     }
 }
