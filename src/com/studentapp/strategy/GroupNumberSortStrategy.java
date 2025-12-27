@@ -1,28 +1,15 @@
 package studentapp.strategy;
 
-import studentapp.collection.StudentCollection;
 import studentapp.model.Student;
-import java.util.*;
 
-public class GroupNumberSortStrategy implements SortStrategy {
+public class GroupNumberSortStrategy implements StudentComparator {
     @Override
-    public void sort(List<Student> s) {
-        s.sort(Comparator.comparingInt(Student::getGroupNumber));
+    public int compare(Student s1, Student s2) {
+        return Integer.compare(s1.getGroupNumber(), s2.getGroupNumber());
     }
 
     @Override
-    public void sort(StudentCollection c) {
-        // ВМЕСТО прямой сортировки массива здесь,
-        // мы вызываем метод sort САМОЙ коллекции.
-        // Это передает управление в StudentCollection.sort(strategy)
-        c.sort(this);
+    public String getDescription() {
+        return "Сортировка по номеру группы (по возрастанию)";
     }
-
-    @Override
-    public void sort(Student[] s, int sz) {
-        Arrays.sort(s, 0, sz, Comparator.comparingInt(Student::getGroupNumber));
-    }
-
-    @Override
-    public String getStrategyName() { return "По номеру группы"; }
 }

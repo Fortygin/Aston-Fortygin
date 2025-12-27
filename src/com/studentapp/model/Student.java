@@ -1,4 +1,5 @@
 package studentapp.model;
+
 /*
  * Конструктор с обязательными полями.
  *    groupNumber номер группы (> 0)
@@ -49,7 +50,7 @@ public class Student {
     public String toString() {
         return "Студент: " +
                 "Номер группы: " + groupNumber +
-                ", Средний балл: " + String.format("%.2f", averageGrade)  +
+                ", Средний балл: " + String.format("%.2f", averageGrade) +
                 ", Номер зачетки: " + recordBookNumber +
                 ", Полное имя: " + (fullName != null ? "'" + fullName + "'" : "Отсутствует") +
                 ", email: " + (email != null ? "'" + email + "'" : "Отсутствует");

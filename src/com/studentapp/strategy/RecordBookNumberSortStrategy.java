@@ -1,16 +1,21 @@
 package studentapp.strategy;
 
-import studentapp.collection.StudentCollection;
 import studentapp.model.Student;
-import java.util.*;
 
-public class RecordBookNumberSortStrategy implements SortStrategy {
+public class RecordBookNumberSortStrategy implements StudentComparator {
     @Override
-    public void sort(List<Student> s) { s.sort(Comparator.comparing(Student::getRecordBookNumber)); }
+    public int compare(Student s1, Student s2) {
+        // Сначала сравниваем по длине
+        int lenDiff = s1.getRecordBookNumber().length() - s2.getRecordBookNumber().length();
+        if (lenDiff != 0) {
+            return lenDiff;
+        }
+        // Затем лексикографически
+        return s1.getRecordBookNumber().compareTo(s2.getRecordBookNumber());
+    }
+
     @Override
-    public void sort(StudentCollection c) { sort(Arrays.asList(c.toArray())); }
-    @Override
-    public void sort(Student[] s, int sz) { Arrays.sort(s, 0, sz, Comparator.comparing(Student::getRecordBookNumber)); }
-    @Override
-    public String getStrategyName() { return "По номеру зачетки"; }
+    public String getDescription() {
+        return "Сортировка по номеру зачётной книжки";
+    }
 }

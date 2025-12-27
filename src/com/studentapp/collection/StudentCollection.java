@@ -1,7 +1,8 @@
 package studentapp.collection;
 
 import studentapp.model.Student;
-import studentapp.strategy.SortStrategy;
+import studentapp.strategy.EvenSortStrategy;
+import studentapp.strategy.StudentComparator;
 
 import java.util.Arrays;
 
@@ -33,17 +34,38 @@ public class StudentCollection {
         return students[index];
     }
 
-    public void sort(SortStrategy strategy) {
+    // обычная сортировка с помощью компаратора
+    public void sortWithComparator(StudentComparator comparator) {
+        if (comparator == null) {
+            throw new IllegalArgumentException("Компаратор не может быть null");
+        }
+        if (size <= 1) return;
+
+        for (int i = 0; i < size - 1; i++) {
+            for (int j = 0; j < size - 1 - i; j++) {
+                if (comparator.compare(students[j], students[j + 1]) > 0) {
+                    swap(j, j + 1);
+                }
+            }
+        }
+    }
+
+    private void swap(int i, int j) {
+        Student temp = students[i];
+        students[i] = students[j];
+        students[j] = temp;
+    }
+
+    public void sort(StudentComparator comparator) {
+        sortWithComparator(comparator);
+    }
+
+    // сортировка чётных полей
+    public void sort(EvenSortStrategy strategy) {
         if (strategy == null) {
             throw new IllegalArgumentException("Стратегия сортировки не может быть null");
         }
-
-        Student[] arrayToSort = this.toArray();
-        strategy.sort(arrayToSort, size);
-
-        for (int i = 0; i < size; i++) {
-            this.students[i] = arrayToSort[i];
-        }
+        strategy.sort(students, size);
     }
 
     public boolean isEmpty() {
