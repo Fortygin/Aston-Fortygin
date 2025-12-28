@@ -18,6 +18,7 @@ public class StudentTests {
         testEvenAverageGradeSorting();
         testEvenRecordBookSorting();
         testEdgeCases();
+        testCountOccurrences();
         System.out.println("\n=== Все тесты завершены ===");
 
         System.out.println("Тесты завершены");
@@ -223,5 +224,25 @@ public class StudentTests {
             System.out.print("1 элемент → НЕ ПРОЙДЕН");
         }
         System.out.println();
+    }
+
+    private static void testCountOccurrences() {
+        System.out.print("11. Тест многопоточного подсчёта вхождений: ");
+
+        // Создаём тестовую коллекцию
+        StudentCollection collection = new StudentCollection();
+        collection.add(new Student.StudentBuilder(10, 4.0, "111111").build());
+        collection.add(new Student.StudentBuilder(20, 3.5, "222222").build());
+        collection.add(new Student.StudentBuilder(10, 4.2, "333333").build()); // группа 10 (повтор)
+        collection.add(new Student.StudentBuilder(30, 4.8, "444444").build());
+
+        // Ищем количество студентов с группой 10
+        long count = collection.countOccurrences(student -> student.getGroupNumber() == 10);
+
+        if (count == 2) {
+            System.out.println("ОК (найдено " + count + " студента с группой 10)");
+        } else {
+            System.out.println("НЕ ПРОЙДЕН — ожидалось 2, получено: " + count);
+        }
     }
 }

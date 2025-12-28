@@ -5,6 +5,8 @@ import studentapp.strategy.EvenSortStrategy;
 import studentapp.strategy.StudentComparator;
 
 import java.util.Arrays;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class StudentCollection {
     private Student[] students;
@@ -74,6 +76,28 @@ public class StudentCollection {
 
     public Student[] toArray() {
         return Arrays.copyOfRange(students, 0, size);
+    }
+
+    // Метод для добавления через Stream
+    public void addAll(Stream<Student> stream) {
+        if (stream == null) {
+            throw new NullPointerException("Поток не может быть null");
+        }
+        stream.forEach(this::add);
+    }
+    // Многопоточный подсчёт количества вхождений студента, удовлетворяющего условию
+    public long countOccurrences(Predicate<Student> predicate) {
+        if (predicate == null) {
+            throw new IllegalArgumentException("Условие (predicate) не может быть null");
+        }
+
+        // Используем parallelStream для многопоточной обработки
+        long count = java.util.Arrays.stream(students, 0, size)
+                .parallel()
+                .filter(predicate)
+                .count();
+
+        return count;
     }
 
     @Override
