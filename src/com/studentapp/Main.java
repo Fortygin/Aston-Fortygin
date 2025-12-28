@@ -5,8 +5,15 @@ import studentapp.collection.StudentCollection;
 import studentapp.strategy.*;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.DoublePredicate;
+import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 import java.util.logging.*;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class Main {
     private static final Logger logger = Logger.getLogger(Main.class.getName());
@@ -27,6 +34,7 @@ public class Main {
             System.out.println("2. Вывести данные на экран");
             System.out.println("3. Отсортировать список");
             System.out.println("4. Записать коллекцию в файл");
+            System.out.println("5. Подсчитать вхождения по критерию");
             System.out.println("0. Выход");
             System.out.print("Ваш выбор: ");
 
@@ -41,6 +49,7 @@ public class Main {
                 case "2" -> displayCollection(collection);
                 case "3" -> handleSortSelection(collection);
                 case "4" -> saveCollectionToFile(collection);
+                case "5" -> performCountOccurrences(collection);
                 default -> logger.log(Level.WARNING, "Неверный ввод в меню: {0}", choice);
             }
         }
@@ -86,92 +95,116 @@ public class Main {
 
     private static StudentCollection fillManual(int count) {
         StudentCollection collection = new StudentCollection();
-        for (int i = 0; i < count; i++) {
-            System.out.println("\nСтудент №" + (i + 1));
-            int group;
-            double grade;
-            String book;
 
-            // Группа
-            while (true) {
-                try {
-                    System.out.print("Группа (число больше 0): ");
-                    group = Integer.parseInt(scanner.nextLine());
-                    if (group <= 0) throw new IllegalArgumentException("Группа должна быть > 0");
-                    break;
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Ошибка ввода группы: {0}", e.getMessage());
-                }
-            }
+        Stream<Student> studentStream = Stream.generate(() -> {
+                    System.out.println("\nСтудент №" + (collection.size() + 1));
 
-            // Балл
-            while (true) {
-                try {
-                    System.out.print("Балл (0–5): ");
-                    grade = Double.parseDouble(scanner.nextLine());
-                    if (grade < 0 || grade > 5) throw new IllegalArgumentException("Балл должен быть от 0.0 до 5.0");
-                    break;
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Ошибка ввода балла: {0}", e.getMessage());
-                }
-            }
 
-            // Зачётка
-            while (true) {
-                try {
-                    System.out.print("Зачётка (6 цифр): ");
-                    book = scanner.nextLine();
-                    if (!book.matches("\\d{6}")) throw new IllegalArgumentException("Нужно ровно 6 цифр!");
-                    break;
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Ошибка ввода зачётной книжки: {0}", e.getMessage());
-                }
-            }
+                    int group = getValidInt("Группа (число > 0): ", val -> val > 0, "Группа должна быть > 0");
+                    double grade = getValidDouble("Балл (0–5): ", val -> val >= 0 && val <= 5, "Балл должен быть от 0.0 до 5.0");
+                    String book = getValidString("Зачётка (6 цифр): ", str -> str.matches("\\d{6}"), "Нужно ровно 6 цифр!");
 
-            Student student = new Student.StudentBuilder(group, grade, book).build();
-            collection.add(student);
-        }
-        logger.log(Level.INFO, "Вручную добавлено студентов: {0}", collection.size());
+
+                    return new Student.StudentBuilder(group, grade, book).build();
+                })
+                .limit(count);
+
+        collection.addAll(studentStream);
+        logger.log(Level.INFO, "Вручную добавлено студентов (через Stream): {0}", collection.size());
         return collection;
     }
 
+    // Вспомогательные методы для валидации ввода
+    private static int getValidInt(String prompt, IntPredicate validator, String errorMsg) {
+        while (true) {
+            try {
+                System.out.print(prompt);
+                int val = Integer.parseInt(scanner.nextLine());
+                if (validator.test(val)) return val;
+                logger.warning(errorMsg);
+            } catch (NumberFormatException e) {
+                logger.warning("Введите целое число.");
+            }
+        }
+    }
+
+    private static double getValidDouble(String prompt, DoublePredicate validator, String errorMsg) {
+        while (true) {
+            try {
+                System.out.print(prompt);
+                double val = Double.parseDouble(scanner.nextLine());
+                if (validator.test(val)) return val;
+                logger.warning(errorMsg);
+            } catch (NumberFormatException e) {
+                logger.warning("Введите число.");
+            }
+        }
+    }
+
+    private static String getValidString(String prompt, Predicate<String> validator, String errorMsg) {
+        while (true) {
+            System.out.print(prompt);
+            String str = scanner.nextLine();
+            if (validator.test(str)) return str;
+            logger.warning(errorMsg);
+        }
+    }
+
+
     private static StudentCollection fillFromFile(int count) {
         StudentCollection collection = new StudentCollection();
-        try (BufferedReader br = new BufferedReader(new FileReader("students.txt"))) {
-            for (int i = 0; i < count; i++) {
-                String line = br.readLine();
-                if (line == null) break;
-                try {
-                    String[] d = line.split(",");
-                    Student student = new Student.StudentBuilder(
-                            Integer.parseInt(d[0].trim()),
-                            Double.parseDouble(d[1].trim()),
-                            d[2].trim()).build();
-                    collection.add(student);
-                } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Битые данные в файле: {0}", line);
-                }
-            }
-            logger.info("Данные из файла успешно загружены.");
+
+        try (Stream<String> lines = Files.lines(Paths.get("students.txt"))) {
+            Stream<Student> studentStream = lines
+                    .limit(count)  // берём не более count строк
+                    .map(line -> {
+                        try {
+                            String[] d = line.split(",");
+                            return new Student.StudentBuilder(
+                                    Integer.parseInt(d[0].trim()),
+                                    Double.parseDouble(d[1].trim()),
+                                    d[2].trim()
+                            ).build();
+                        } catch (Exception e) {
+                            logger.log(Level.SEVERE, "Битые данные в строке: {0}", line);
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull);  // убираем null из-за ошибок парсинга
+
+            collection.addAll(studentStream);
+
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Файл не найден или недоступен!", e);
+            logger.log(Level.SEVERE, "Ошибка чтения файла: {0}", e.getMessage());
         }
+
+        logger.info("Данные из файла загружены (через Stream).");
         return collection;
     }
 
     private static StudentCollection fillRandom(int count) {
         StudentCollection collection = new StudentCollection();
-        for (int i = 0; i < count; i++) {
-            Student student = new Student.StudentBuilder(
-                    random.nextInt(50) + 1,
-                    2.0 + 3.0 * random.nextDouble(),
-                    String.format("%06d", random.nextInt(1000000))
-            ).build();
-            collection.add(student);
-        }
-        logger.log(Level.INFO, "Сгенерировано случайных студентов: {0}", count);
+
+
+        Stream<Student> studentStream = IntStream.range(0, count)
+                .mapToObj(i -> {
+                    double rawGrade = 2.0 + 3.0 * random.nextDouble();
+                    double roundedGrade = Math.round(rawGrade * 10) / 10.0;
+
+
+                    return new Student.StudentBuilder(
+                            random.nextInt(50) + 1,
+                            roundedGrade,
+                            String.format("%06d", random.nextInt(1000000))
+                    ).build();
+                });
+
+        collection.addAll(studentStream);
+        logger.log(Level.INFO, "Сгенерировано случайных студентов (через Stream): {0}", count);
         return collection;
     }
+
+
 
     private static void handleSortSelection(StudentCollection collection) {
         if (collection == null || collection.isEmpty()) {
@@ -230,6 +263,7 @@ public class Main {
             logger.warning("Стратегия не выбрана.");
         }
     }
+
     // Блок сохранения в файл для метода handleSortSelection
     private static void promptAndSaveToFile(StudentCollection collection, String strategyDescription) {
         while (true) {
@@ -297,5 +331,57 @@ public class Main {
             logger.log(Level.SEVERE, "Ошибка при записи в файл: {0}", e.getMessage());
             System.out.println("Ошибка сохранения в файл.");
         }
+    }
+
+    // многопоточный метод, подсчитывающий количество вхождений
+    private static void performCountOccurrences(StudentCollection collection) {
+        if (collection == null || collection.isEmpty()) {
+            System.out.println("Коллекция пуста, подсчёт невозможен.");
+            return;
+        }
+
+        System.out.println("\nВыберите критерий для подсчёта:");
+        System.out.println("1. По номеру группы");
+        System.out.println("2. По среднему баллу");
+        System.out.println("3. По номеру зачётной книжки");
+        System.out.print("Ваш выбор: ");
+
+        String choice = scanner.nextLine();
+
+        switch (choice) {
+            case "1" -> countByGroup(collection);
+            case "2" -> countByGrade(collection);
+            case "3" -> countByBookNumber(collection);
+            default -> System.out.println("Неверный выбор.");
+        }
+    }
+
+    private static void countByGroup(StudentCollection collection) {
+        System.out.print("Введите номер группы: ");
+        try {
+            int group = Integer.parseInt(scanner.nextLine());
+            long count = collection.countOccurrences(s -> s.getGroupNumber() == group);
+            System.out.printf("Найдено студентов в группе %d: %d%n", group, count);
+        } catch (NumberFormatException e) {
+            System.out.println("Ошибка: введите целое число.");
+        }
+    }
+
+    private static void countByGrade(StudentCollection collection) {
+        System.out.print("Введите средний балл: ");
+        try {
+            double grade = Double.parseDouble(scanner.nextLine());
+            long count = collection.countOccurrences(s -> s.getAverageGrade() == grade);
+            System.out.printf("Найдено студентов с баллом %.1f: %d%n", grade, count);
+        } catch (NumberFormatException e) {
+            System.out.println("Ошибка: введите число.");
+        }
+    }
+
+    private static void countByBookNumber(StudentCollection collection) {
+        System.out.print("Введите номер зачётной книжки: ");
+        String bookNumber = scanner.nextLine();
+        long count = collection.countOccurrences(s -> s.getRecordBookNumber().equals(bookNumber));
+        System.out.printf("Найдено студентов с зачёткой %s: %d%n", bookNumber, count);
     }
 }
