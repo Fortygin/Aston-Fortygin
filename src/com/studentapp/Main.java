@@ -7,6 +7,9 @@ import studentapp.strategy.*;
 import java.io.*;
 import java.util.*;
 import java.util.logging.*;
+import java.util.stream.*;
+import java.nio.file.*;
+import java.util.concurrent.CountDownLatch;
 
 public class Main {
     private static final Logger logger = Logger.getLogger(Main.class.getName());
@@ -27,6 +30,7 @@ public class Main {
             System.out.println("2. Вывести данные на экран");
             System.out.println("3. Отсортировать список");
             System.out.println("4. Записать коллекцию в файл");
+            System.out.println("5. Подсчитать вхождения элементов");
             System.out.println("0. Выход");
             System.out.print("Ваш выбор: ");
 
@@ -41,6 +45,7 @@ public class Main {
                 case "2" -> displayCollection(collection);
                 case "3" -> handleSortSelection(collection);
                 case "4" -> saveCollectionToFile(collection);
+                case "5" -> handleCountOccurrences(collection);
                 default -> logger.log(Level.WARNING, "Неверный ввод в меню: {0}", choice);
             }
         }
@@ -132,27 +137,32 @@ public class Main {
             collection.add(student);
         }
         logger.log(Level.INFO, "Вручную добавлено студентов: {0}", collection.size());
+        
         return collection;
     }
 
     private static StudentCollection fillFromFile(int count) {
         StudentCollection collection = new StudentCollection();
-        try (BufferedReader br = new BufferedReader(new FileReader("students.txt"))) {
-            for (int i = 0; i < count; i++) {
-                String line = br.readLine();
-                if (line == null) break;
-                try {
-                    String[] d = line.split(",");
-                    Student student = new Student.StudentBuilder(
-                            Integer.parseInt(d[0].trim()),
-                            Double.parseDouble(d[1].trim()),
-                            d[2].trim()).build();
-                    collection.add(student);
-                } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Битые данные в файле: {0}", line);
-                }
-            }
-            logger.info("Данные из файла успешно загружены.");
+        try {
+            List<Student> students = Files.lines(Paths.get("students.txt"))
+                    .limit(count)
+                    .map(line -> {
+                        try {
+                            String[] d = line.split(",");
+                            return new Student.StudentBuilder(
+                                    Integer.parseInt(d[0].trim()),
+                                    Double.parseDouble(d[1].trim()),
+                                    d[2].trim()).build();
+                        } catch (Exception e) {
+                            logger.log(Level.SEVERE, "Битые данные в файле: {0}", line);
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            
+            collection.addAll(students);
+            logger.info("Данные из файла успешно загружены через стримы.");
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Файл не найден или недоступен!", e);
         }
@@ -161,15 +171,16 @@ public class Main {
 
     private static StudentCollection fillRandom(int count) {
         StudentCollection collection = new StudentCollection();
-        for (int i = 0; i < count; i++) {
-            Student student = new Student.StudentBuilder(
-                    random.nextInt(50) + 1,
-                    2.0 + 3.0 * random.nextDouble(),
-                    String.format("%06d", random.nextInt(1000000))
-            ).build();
-            collection.add(student);
-        }
-        logger.log(Level.INFO, "Сгенерировано случайных студентов: {0}", count);
+        List<Student> students = IntStream.range(0, count)
+                .mapToObj(i -> new Student.StudentBuilder(
+                        random.nextInt(50) + 1,
+                        2.0 + 3.0 * random.nextDouble(),
+                        String.format("%06d", random.nextInt(1000000))
+                ).build())
+                .collect(Collectors.toList());
+        
+        collection.addAll(students);
+        logger.log(Level.INFO, "Сгенерировано случайных студентов через стримы: {0}", count);
         return collection;
     }
 
@@ -276,6 +287,53 @@ public class Main {
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Ошибка при записи в файл: {0}", e.getMessage());
         }
+    }
+
+    // Обработка запроса подсчёта вхождений из меню
+    private static void handleCountOccurrences(StudentCollection collection) {
+        if (collection == null || collection.isEmpty()) {
+            System.out.println("Коллекция пуста.");
+            return;
+        }
+        
+        // Получаем все уникальные элементы
+        List<Student> uniqueStudents = collection.stream()
+                .distinct()
+                .collect(Collectors.toList());
+        
+        System.out.println("\n=== Подсчёт вхождений элементов ===");
+        System.out.println("Найдено уникальных элементов: " + uniqueStudents.size());
+        
+        long startTime = System.currentTimeMillis();
+        CountDownLatch latch = new CountDownLatch(uniqueStudents.size());
+        
+        // Map для хранения результатов (Student -> количество вхождений)
+        Map<Student, Long> results = new java.util.concurrent.ConcurrentHashMap<>();
+        
+        // Запускаем асинхронный многопоточный подсчёт для каждого элемента
+        for (Student target : uniqueStudents) {
+            collection.countOccurrencesMultithreadedAsync(target, count -> {
+                results.put(target, count);
+                latch.countDown();
+            });
+        }
+        
+        // Ждём завершения всех подсчётов
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        // Выводим все результаты после завершения всех потоков
+        System.out.println("\nРезультаты подсчёта:");
+        for (Map.Entry<Student, Long> entry : results.entrySet()) {
+            System.out.println("Элемент: " + entry.getKey());
+            System.out.println("Количество вхождений: " + entry.getValue());
+            System.out.println();
+        }
+        
+        System.out.println("==========================================\n");
     }
 
     // Дополнительный метод для сохранения без указания стратегии (например, из пункта меню 4)

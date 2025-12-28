@@ -47,6 +47,21 @@ public class Student {
     }
 
     @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Student student = (Student) obj;
+        return groupNumber == student.groupNumber &&
+               Double.compare(student.averageGrade, averageGrade) == 0 &&
+               recordBookNumber.equals(student.recordBookNumber);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(groupNumber, averageGrade, recordBookNumber);
+    }
+
+    @Override
     public String toString() {
         return "Студент: " +
                 "Номер группы: " + groupNumber +
