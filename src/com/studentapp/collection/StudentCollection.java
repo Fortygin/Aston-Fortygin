@@ -78,26 +78,74 @@ public class StudentCollection {
         return Arrays.copyOfRange(students, 0, size);
     }
 
-    // Метод для добавления через Stream
-    public void addAll(Stream<Student> stream) {
-        if (stream == null) {
-            throw new NullPointerException("Поток не может быть null");
-        }
-        stream.forEach(this::add);
+    // Метод для получения стрима из коллекции
+    public java.util.stream.Stream<Student> stream() {
+        return java.util.Arrays.stream(students, 0, size);
     }
-    // Многопоточный подсчёт количества вхождений студента, удовлетворяющего условию
-    public long countOccurrences(Predicate<Student> predicate) {
-        if (predicate == null) {
-            throw new IllegalArgumentException("Условие (predicate) не может быть null");
+    
+    // Метод для добавления всех элементов из коллекции
+    public void addAll(java.util.Collection<Student> studentsToAdd) {
+        for (Student student : studentsToAdd) {
+            add(student);
+        }
+    }
+
+    // Асинхронный многопоточный метод подсчёта вхождений элемента N
+    public void countOccurrencesMultithreadedAsync(Student target, java.util.function.Consumer<Long> callback) {
+        if (target == null) {
+            throw new IllegalArgumentException("Целевой элемент не может быть null");
+        }
+        if (isEmpty()) {
+            callback.accept(0L);
+            return;
         }
 
-        // Используем parallelStream для многопоточной обработки
-        long count = java.util.Arrays.stream(students, 0, size)
-                .parallel()
-                .filter(predicate)
-                .count();
+        int numThreads = Runtime.getRuntime().availableProcessors();
+        int chunkSize = Math.max(1, size / numThreads);
+        
+        // Вычисляем hashCode целевого элемента один раз для оптимизации
+        final int targetHashCode = target.hashCode();
+        
+        // Массив для хранения результатов из каждого потока
+        final long[] results = new long[numThreads];
+        final Thread[] threads = new Thread[numThreads];
+        final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(numThreads);
 
-        return count;
+        // Создаём и запускаем потоки для параллельного подсчёта
+        for (int i = 0; i < numThreads; i++) {
+            final int threadIndex = i;
+            final int start = i * chunkSize;
+            final int end = (i == numThreads - 1) ? size : (i + 1) * chunkSize;
+            
+            threads[i] = new Thread(() -> {
+                long count = 0;
+                for (int j = start; j < end && j < size; j++) {
+                    Student current = students[j];
+                    // Проверяем на null и сравниваем
+                    if (current != null && current.hashCode() == targetHashCode && current.equals(target)) {
+                        count++;
+                    }
+                }
+                results[threadIndex] = count;
+                latch.countDown();
+            });
+            threads[i].start();
+        }
+
+        // Запускаем поток для ожидания завершения всех потоков и вызова callback
+        new Thread(() -> {
+            try {
+                latch.await();
+                long totalCount = 0;
+                for (long result : results) {
+                    totalCount += result;
+                }
+                callback.accept(totalCount);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                callback.accept(0L);
+            }
+        }).start();
     }
 
     @Override
