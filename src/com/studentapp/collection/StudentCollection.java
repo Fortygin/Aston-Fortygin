@@ -3,7 +3,7 @@ package studentapp.collection;
 import studentapp.model.Student;
 import studentapp.strategy.EvenSortStrategy;
 import studentapp.strategy.StudentComparator;
-
+import java.util.function.Predicate;
 import java.util.Arrays;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -18,6 +18,9 @@ public class StudentCollection {
         this.size = 0;
     }
 
+    /**
+     * Добавление одного студента с динамическим расширением массива
+     */
     public void add(Student student) {
         if (size >= students.length) {
             students = Arrays.copyOf(students, students.length * 2);
@@ -25,8 +28,47 @@ public class StudentCollection {
         students[size++] = student;
     }
 
+    /**
+     * ИСПРАВЛЕНИЕ ДЛЯ InputHandler: позволяет добавлять данные напрямую из Stream
+     */
+    public void addAll(Stream<Student> studentStream) {
+        if (studentStream != null) {
+            studentStream.forEach(this::add);
+        }
+    }
+
+    /**
+     * Добавление из обычной коллекции (List, Set и т.д.)
+     */
+    public void addAll(java.util.Collection<Student> studentsToAdd) {
+        if (studentsToAdd != null) {
+            for (Student student : studentsToAdd) {
+                add(student);
+            }
+        }
+    }
+
+    /**
+     * ИСПРАВЛЕНИЕ ДЛЯ SearchHandler: подсчёт по условию (лямбда-выражению)
+     */
+    public long countOccurrences(Predicate<Student> predicate) {
+        if (predicate == null || isEmpty()) return 0;
+        return stream().filter(predicate).count();
+    }
+    /**
+     * Подсчёт вхождений конкретного объекта
+     */
+    public long countOccurrences(Object o) {
+        if (o == null || isEmpty()) return 0;
+        return stream().filter(s -> s.equals(o)).count();
+    }
+
     public int size() {
         return size;
+    }
+
+    public boolean isEmpty() {
+        return size == 0;
     }
 
     public Student get(int index) {
@@ -36,7 +78,16 @@ public class StudentCollection {
         return students[index];
     }
 
-    // обычная сортировка с помощью компаратора
+    /**
+     * Метод для получения стрима из внутреннего массива
+     */
+    public Stream<Student> stream() {
+        return Arrays.stream(students, 0, size);
+    }
+
+    /**
+     * Обычная сортировка пузырьком с компаратором
+     */
     public void sortWithComparator(StudentComparator comparator) {
         if (comparator == null) {
             throw new IllegalArgumentException("Компаратор не может быть null");
@@ -62,7 +113,9 @@ public class StudentCollection {
         sortWithComparator(comparator);
     }
 
-    // сортировка чётных полей
+    /**
+     * Сортировка по стратегии
+     */
     public void sort(EvenSortStrategy strategy) {
         if (strategy == null) {
             throw new IllegalArgumentException("Стратегия сортировки не может быть null");
@@ -70,27 +123,13 @@ public class StudentCollection {
         strategy.sort(students, size);
     }
 
-    public boolean isEmpty() {
-        return size == 0;
-    }
-
     public Student[] toArray() {
         return Arrays.copyOfRange(students, 0, size);
     }
 
-    // Метод для получения стрима из коллекции
-    public java.util.stream.Stream<Student> stream() {
-        return java.util.Arrays.stream(students, 0, size);
-    }
-    
-    // Метод для добавления всех элементов из коллекции
-    public void addAll(java.util.Collection<Student> studentsToAdd) {
-        for (Student student : studentsToAdd) {
-            add(student);
-        }
-    }
-
-    // Асинхронный многопоточный метод подсчёта вхождений элемента N
+    /**
+     * Асинхронный многопоточный метод подсчёта вхождений
+     */
     public void countOccurrencesMultithreadedAsync(Student target, java.util.function.Consumer<Long> callback) {
         if (target == null) {
             throw new IllegalArgumentException("Целевой элемент не может быть null");
@@ -102,37 +141,29 @@ public class StudentCollection {
 
         int numThreads = Runtime.getRuntime().availableProcessors();
         int chunkSize = Math.max(1, size / numThreads);
-        
-        // Вычисляем hashCode целевого элемента один раз для оптимизации
+
         final int targetHashCode = target.hashCode();
-        
-        // Массив для хранения результатов из каждого потока
         final long[] results = new long[numThreads];
-        final Thread[] threads = new Thread[numThreads];
         final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(numThreads);
 
-        // Создаём и запускаем потоки для параллельного подсчёта
         for (int i = 0; i < numThreads; i++) {
             final int threadIndex = i;
             final int start = i * chunkSize;
             final int end = (i == numThreads - 1) ? size : (i + 1) * chunkSize;
-            
-            threads[i] = new Thread(() -> {
+
+            new Thread(() -> {
                 long count = 0;
                 for (int j = start; j < end && j < size; j++) {
                     Student current = students[j];
-                    // Проверяем на null и сравниваем
                     if (current != null && current.hashCode() == targetHashCode && current.equals(target)) {
                         count++;
                     }
                 }
                 results[threadIndex] = count;
                 latch.countDown();
-            });
-            threads[i].start();
+            }).start();
         }
 
-        // Запускаем поток для ожидания завершения всех потоков и вызова callback
         new Thread(() -> {
             try {
                 latch.await();
@@ -151,7 +182,7 @@ public class StudentCollection {
     @Override
     public String toString() {
         return "Коллекция студентов: " +
-                "Студенты " + Arrays.toString(Arrays.copyOfRange(students, 0, size)) +
-                ", размер коллекции: " + size;
+                Arrays.toString(Arrays.copyOfRange(students, 0, size)) +
+                ", размер: " + size;
     }
 }

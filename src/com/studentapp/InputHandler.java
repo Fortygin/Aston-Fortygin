@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 public class InputHandler {
 
     private static final Scanner scanner = new Scanner(System.in);
-    private static final Random random = new Random();
+    static final Random random = new Random();
 
     private static final Logger logger = Logger.getLogger(InputHandler.class.getName());
 

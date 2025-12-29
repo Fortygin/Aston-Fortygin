@@ -1,13 +1,12 @@
 package studentapp;
 
 import studentapp.collection.StudentCollection;
-
+import studentapp.model.Student;
 import java.util.Scanner;
 
 public class SearchHandler {
     private static final Scanner scanner = new Scanner(System.in);
 
-    // многопоточный метод, подсчитывающий количество вхождений
     static void performCountOccurrences(StudentCollection collection) {
         if (collection == null || collection.isEmpty()) {
             System.out.println("Коллекция пуста, подсчёт невозможен.");
@@ -34,6 +33,7 @@ public class SearchHandler {
         System.out.print("Введите номер группы: ");
         try {
             int group = Integer.parseInt(scanner.nextLine());
+            // ИСПРАВЛЕНО: было getGroup(), стало getGroupNumber()
             long count = collection.countOccurrences(s -> s.getGroupNumber() == group);
             System.out.printf("Найдено студентов в группе %d: %d%n", group, count);
         } catch (NumberFormatException e) {
@@ -45,6 +45,7 @@ public class SearchHandler {
         System.out.print("Введите средний балл: ");
         try {
             double grade = Double.parseDouble(scanner.nextLine());
+            // ИСПРАВЛЕНО: было getGrade(), стало getAverageGrade()
             long count = collection.countOccurrences(s -> s.getAverageGrade() == grade);
             System.out.printf("Найдено студентов с баллом %.1f: %d%n", grade, count);
         } catch (NumberFormatException e) {
@@ -55,6 +56,7 @@ public class SearchHandler {
     private static void countByBookNumber(StudentCollection collection) {
         System.out.print("Введите номер зачётной книжки: ");
         String bookNumber = scanner.nextLine();
+        // Метод getRecordBookNumber() совпадает с полем в Student.java
         long count = collection.countOccurrences(s -> s.getRecordBookNumber().equals(bookNumber));
         System.out.printf("Найдено студентов с зачёткой %s: %d%n", bookNumber, count);
     }
