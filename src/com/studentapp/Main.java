@@ -1,12 +1,19 @@
 package studentapp;
 
 import studentapp.collection.StudentCollection;
+import studentapp.model.Student;
+import studentapp.strategy.*;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 import java.util.logging.*;
 import java.util.stream.*;
 import java.nio.file.*;
 import java.util.concurrent.CountDownLatch;
+
+import static studentapp.InputHandler.random;
 
 public class Main {
     private static final Logger logger = Logger.getLogger(Main.class.getName());
