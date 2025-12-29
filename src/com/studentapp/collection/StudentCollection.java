@@ -5,6 +5,8 @@ import studentapp.strategy.EvenSortStrategy;
 import studentapp.strategy.StudentComparator;
 
 import java.util.Arrays;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class StudentCollection {
     private Student[] students;

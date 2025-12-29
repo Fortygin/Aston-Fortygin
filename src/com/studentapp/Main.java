@@ -1,10 +1,7 @@
 package studentapp;
 
-import studentapp.model.Student;
 import studentapp.collection.StudentCollection;
-import studentapp.strategy.*;
 
-import java.io.*;
 import java.util.*;
 import java.util.logging.*;
 import java.util.stream.*;
@@ -14,7 +11,6 @@ import java.util.concurrent.CountDownLatch;
 public class Main {
     private static final Logger logger = Logger.getLogger(Main.class.getName());
     private static final Scanner scanner = new Scanner(System.in);
-    private static final Random random = new Random();
 
     static {
         System.setProperty("java.util.logging.SimpleFormatter.format",
