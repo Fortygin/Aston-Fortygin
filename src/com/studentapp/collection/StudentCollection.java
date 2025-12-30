@@ -18,9 +18,6 @@ public class StudentCollection {
         this.size = 0;
     }
 
-    /**
-     * Добавление одного студента с динамическим расширением массива
-     */
     public void add(Student student) {
         if (size >= students.length) {
             students = Arrays.copyOf(students, students.length * 2);
@@ -28,18 +25,12 @@ public class StudentCollection {
         students[size++] = student;
     }
 
-    /**
-     * ИСПРАВЛЕНИЕ ДЛЯ InputHandler: позволяет добавлять данные напрямую из Stream
-     */
     public void addAll(Stream<Student> studentStream) {
         if (studentStream != null) {
             studentStream.forEach(this::add);
         }
     }
 
-    /**
-     * Добавление из обычной коллекции (List, Set и т.д.)
-     */
     public void addAll(java.util.Collection<Student> studentsToAdd) {
         if (studentsToAdd != null) {
             for (Student student : studentsToAdd) {
@@ -48,16 +39,11 @@ public class StudentCollection {
         }
     }
 
-    /**
-     * ИСПРАВЛЕНИЕ ДЛЯ SearchHandler: подсчёт по условию (лямбда-выражению)
-     */
     public long countOccurrences(Predicate<Student> predicate) {
         if (predicate == null || isEmpty()) return 0;
         return stream().filter(predicate).count();
     }
-    /**
-     * Подсчёт вхождений конкретного объекта
-     */
+
     public long countOccurrences(Object o) {
         if (o == null || isEmpty()) return 0;
         return stream().filter(s -> s.equals(o)).count();
@@ -78,16 +64,10 @@ public class StudentCollection {
         return students[index];
     }
 
-    /**
-     * Метод для получения стрима из внутреннего массива
-     */
     public Stream<Student> stream() {
         return Arrays.stream(students, 0, size);
     }
 
-    /**
-     * Обычная сортировка пузырьком с компаратором
-     */
     public void sortWithComparator(StudentComparator comparator) {
         if (comparator == null) {
             throw new IllegalArgumentException("Компаратор не может быть null");
@@ -113,9 +93,6 @@ public class StudentCollection {
         sortWithComparator(comparator);
     }
 
-    /**
-     * Сортировка по стратегии
-     */
     public void sort(EvenSortStrategy strategy) {
         if (strategy == null) {
             throw new IllegalArgumentException("Стратегия сортировки не может быть null");

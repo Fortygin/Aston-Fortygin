@@ -1,11 +1,5 @@
 package studentapp.model;
 
-/*
- * Конструктор с обязательными полями.
- *    groupNumber номер группы (> 0)
- *    averageGrade средний балл (0 – 5)
- *    recordBookNumber номер зачётной книжки (6 цифр)
- */
 public class Student {
     // Обязательные поля (final — не меняются после создания)
     private final int groupNumber;
@@ -73,7 +67,6 @@ public class Student {
 
     // Вложенный класс-билдер
     public static class StudentBuilder {
-        // Обязательные поля (должны быть заданы в конструкторе)
         private final int groupNumber;
         private final double averageGrade;
         private final String recordBookNumber;
@@ -121,7 +114,6 @@ public class Student {
             return this;
         }
 
-        // Метод для создания объекта Student
         public Student build() {
             return new Student(this);
         }

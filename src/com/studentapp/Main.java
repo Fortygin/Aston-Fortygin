@@ -13,6 +13,7 @@ import java.util.stream.*;
 import java.nio.file.*;
 import java.util.concurrent.CountDownLatch;
 
+import static java.nio.file.Paths.get;
 import static studentapp.InputHandler.random;
 
 public class Main {
@@ -140,14 +141,14 @@ public class Main {
             collection.add(student);
         }
         logger.log(Level.INFO, "Вручную добавлено студентов: {0}", collection.size());
-        
+
         return collection;
     }
 
     private static StudentCollection fillFromFile(int count) {
         StudentCollection collection = new StudentCollection();
         try {
-            List<Student> students = Files.lines(Paths.get("students.txt"))
+            List<Student> students = Files.lines(get("students.txt"))
                     .limit(count)
                     .map(line -> {
                         try {
@@ -163,7 +164,7 @@ public class Main {
                     })
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-            
+
             collection.addAll(students);
             logger.info("Данные из файла успешно загружены через стримы.");
         } catch (IOException e) {
@@ -181,7 +182,7 @@ public class Main {
                         String.format("%06d", random.nextInt(1000000))
                 ).build())
                 .collect(Collectors.toList());
-        
+
         collection.addAll(students);
         logger.log(Level.INFO, "Сгенерировано случайных студентов через стримы: {0}", count);
         return collection;
@@ -298,21 +299,21 @@ public class Main {
             System.out.println("Коллекция пуста.");
             return;
         }
-        
+
         // Получаем все уникальные элементы
         List<Student> uniqueStudents = collection.stream()
                 .distinct()
                 .collect(Collectors.toList());
-        
+
         System.out.println("\n=== Подсчёт вхождений элементов ===");
         System.out.println("Найдено уникальных элементов: " + uniqueStudents.size());
-        
+
         long startTime = System.currentTimeMillis();
         CountDownLatch latch = new CountDownLatch(uniqueStudents.size());
-        
+
         // Map для хранения результатов (Student -> количество вхождений)
         Map<Student, Long> results = new java.util.concurrent.ConcurrentHashMap<>();
-        
+
         // Запускаем асинхронный многопоточный подсчёт для каждого элемента
         for (Student target : uniqueStudents) {
             collection.countOccurrencesMultithreadedAsync(target, count -> {
@@ -320,14 +321,14 @@ public class Main {
                 latch.countDown();
             });
         }
-        
+
         // Ждём завершения всех подсчётов
         try {
             latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         // Выводим все результаты после завершения всех потоков
         System.out.println("\nРезультаты подсчёта:");
         for (Map.Entry<Student, Long> entry : results.entrySet()) {
@@ -335,7 +336,7 @@ public class Main {
             System.out.println("Количество вхождений: " + entry.getValue());
             System.out.println();
         }
-        
+
         System.out.println("==========================================\n");
     }
 

@@ -122,7 +122,8 @@ public class InputHandler {
     private static StudentCollection fillFromFile(int count) {
         StudentCollection collection = new StudentCollection();
 
-        try (Stream<String> lines = Files.lines(Paths.get("students_valid.txt"))) {
+        try (Stream<String> lines = Files.lines(Paths.get("""
+                students_valid.txt"""))) {
             Stream<Student> studentStream = lines
                     .limit(count)  // берём не более count строк
                     .map(line -> {
