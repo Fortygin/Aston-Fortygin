@@ -1,1 +1,6 @@
-
+*.class
+bin/
+out/
+.idea/
+*.iml
+*.log

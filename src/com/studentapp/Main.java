@@ -12,7 +12,6 @@ import java.util.logging.*;
 import java.util.stream.*;
 import java.nio.file.*;
 import java.util.concurrent.CountDownLatch;
-
 import static java.nio.file.Paths.get;
 import static studentapp.InputHandler.random;
 
@@ -45,7 +44,7 @@ public class Main {
             }
 
             switch (choice) {
-                case "1" -> collection = handleInputSelection();
+                case "1" -> collection = InputHandler.handleInputSelection();
                 case "2" -> displayCollection(collection);
                 case "3" -> handleSortSelection(collection);
                 case "4" -> saveCollectionToFile(collection);
@@ -148,7 +147,7 @@ public class Main {
     private static StudentCollection fillFromFile(int count) {
         StudentCollection collection = new StudentCollection();
         try {
-            List<Student> students = Files.lines(get("students.txt"))
+            List<Student> students = Files.lines(get("students_valid.txt"))
                     .limit(count)
                     .map(line -> {
                         try {

@@ -6,6 +6,7 @@ import studentapp.model.Student;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Scanner;
@@ -16,12 +17,10 @@ import java.util.logging.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-// создание коллекции разными способами
 public class InputHandler {
 
     private static final Scanner scanner = new Scanner(System.in);
     static final Random random = new Random();
-
     private static final Logger logger = Logger.getLogger(InputHandler.class.getName());
 
     public static StudentCollection handleInputSelection() {
@@ -36,7 +35,7 @@ public class InputHandler {
             case "2" -> fillRandom(count);
             case "3" -> fillFromFile(count);
             default -> {
-                logger.warning("Выбран неверный способ заполнения.");
+                logger.info("Выбран неверный способ заполнения.");
                 yield null;
             }
         };
@@ -57,42 +56,38 @@ public class InputHandler {
             } catch (NumberFormatException e) {
                 logger.log(Level.SEVERE, "Ошибка формата: введено не число.");
             } catch (IllegalArgumentException e) {
-                logger.log(Level.WARNING, "Валидация: {0}", e.getMessage());
+                logger.log(Level.INFO, "Валидация: {0}", e.getMessage());
             }
         }
     }
 
     private static StudentCollection fillManual(int count) {
         StudentCollection collection = new StudentCollection();
-
-        Stream<Student> studentStream = Stream.generate(() -> {
-                    System.out.println("\nСтудент №" + (collection.size() + 1));
-
-
+        // Используем IntStream, чтобы видеть номер текущего студента
+        List<Student> students = IntStream.range(0, count)
+                .mapToObj(i -> {
+                    System.out.println("\nСтудент №" + (i + 1));
                     int group = getValidInt("Группа (число > 0): ", val -> val > 0, "Группа должна быть > 0");
                     double grade = getValidDouble("Балл (0–5): ", val -> val >= 0 && val <= 5, "Балл должен быть от 0.0 до 5.0");
                     String book = getValidString("Зачётка (6 цифр): ", str -> str.matches("\\d{6}"), "Нужно ровно 6 цифр!");
-
-
                     return new Student.StudentBuilder(group, grade, book).build();
                 })
-                .limit(count);
+                .toList();
 
-        collection.addAll(studentStream);
-        logger.log(Level.INFO, "Вручную добавлено студентов (через Stream): {0}", collection.size());
+        collection.addAll(students.stream());
+        logger.log(Level.INFO, "Вручную добавлено студентов: {0}", collection.size());
         return collection;
     }
 
-    // Вспомогательные методы для валидации ввода
     private static int getValidInt(String prompt, IntPredicate validator, String errorMsg) {
         while (true) {
             try {
                 System.out.print(prompt);
                 int val = Integer.parseInt(scanner.nextLine());
                 if (validator.test(val)) return val;
-                logger.warning(errorMsg);
+                logger.info(errorMsg);
             } catch (NumberFormatException e) {
-                logger.warning("Введите целое число.");
+                logger.info("Введите целое число.");
             }
         }
     }
@@ -103,9 +98,9 @@ public class InputHandler {
                 System.out.print(prompt);
                 double val = Double.parseDouble(scanner.nextLine());
                 if (validator.test(val)) return val;
-                logger.warning(errorMsg);
+                logger.info(errorMsg);
             } catch (NumberFormatException e) {
-                logger.warning("Введите число.");
+                logger.info("Введите число.");
             }
         }
     }
@@ -115,17 +110,18 @@ public class InputHandler {
             System.out.print(prompt);
             String str = scanner.nextLine();
             if (validator.test(str)) return str;
-            logger.warning(errorMsg);
+            logger.info(errorMsg);
         }
     }
 
     private static StudentCollection fillFromFile(int count) {
         StudentCollection collection = new StudentCollection();
+        String fileName = "src/students_valid.txt"; // Проверьте, что файл в папке src!
+        java.nio.file.Path path = java.nio.file.Paths.get(fileName);
 
-        try (Stream<String> lines = Files.lines(Paths.get("""
-                students_valid.txt"""))) {
-            Stream<Student> studentStream = lines
-                    .limit(count)  // берём не более count строк
+        try (Stream<String> lines = Files.lines(path)) {
+            List<Student> studentList = lines
+                    .limit(count)
                     .map(line -> {
                         try {
                             String[] d = line.split(",");
@@ -135,41 +131,36 @@ public class InputHandler {
                                     d[2].trim()
                             ).build();
                         } catch (Exception e) {
-                            logger.log(Level.SEVERE, "Битые данные в строке: {0}", line);
                             return null;
                         }
                     })
-                    .filter(Objects::nonNull);  // убираем null из-за ошибок парсинга
+                    .filter(Objects::nonNull)
+                    .toList();
 
-            collection.addAll(studentStream);
-
+            collection.addAll(studentList.stream());
+            logger.info("Данные загружены из " + fileName);
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Ошибка чтения файла: {0}", e.getMessage());
+            logger.log(Level.SEVERE, "Файл не найден! Искал тут: {0}", path.toAbsolutePath());
         }
-
-        logger.info("Данные из файла загружены (через Stream).");
         return collection;
     }
 
     private static StudentCollection fillRandom(int count) {
         StudentCollection collection = new StudentCollection();
-
-
-        Stream<Student> studentStream = IntStream.range(0, count)
+        List<Student> students = IntStream.range(0, count)
                 .mapToObj(i -> {
                     double rawGrade = 2.0 + 3.0 * random.nextDouble();
                     double roundedGrade = Math.round(rawGrade * 10) / 10.0;
-
-
                     return new Student.StudentBuilder(
                             random.nextInt(50) + 1,
                             roundedGrade,
                             String.format("%06d", random.nextInt(1000000))
                     ).build();
-                });
+                })
+                .toList();
 
-        collection.addAll(studentStream);
-        logger.log(Level.INFO, "Сгенерировано случайных студентов (через Stream): {0}", count);
+        collection.addAll(students.stream());
+        logger.log(Level.INFO, "Сгенерировано случайных студентов: {0}", count);
         return collection;
     }
 }
