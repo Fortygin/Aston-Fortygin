@@ -15,7 +15,7 @@
 
 ##  Технологический стек
 
-*   **Язык**: Java 17+ (Lambda, Stream API, Parallel Streams).
+*   **Язык**: Java 21 (Lambda, Stream API, Parallel Streams).
 *   **Паттерны**: Builder, Strategy, Template Method.
 *   **Инструменты**: Git, Regex (регулярные выражения в классе Student), Модульное тестирование.
 
